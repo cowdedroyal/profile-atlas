@@ -1,0 +1,20 @@
+id: search-rec
+title: 搜广推算法工程师
+headline: 搜索 / 广告 / 推荐算法工程师
+theme: minimal
+description: 推荐与 CTR/CVR 预估、生成式推荐、检索
+weights:
+  topics:
+    retrieval-and-knowledge-augmentation: 0.6
+    post-training-and-alignment: 0.3
+  techs:
+    generative-recommendation: 1.0
+    semantic-id: 1.0
+    ctr-prediction: 1.0
+    sequential-recommendation: 0.9
+    feature-engineering: 0.7
+    bm25: 0.6
+    dense-retrieval: 0.7
+    reciprocal-rank-fusion: 0.6
+    cross-encoder-reranking: 0.7
+limits: {projects: 3, bullets: 3}

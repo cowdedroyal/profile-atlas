@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="{{ theme }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ r.name }} · {{ r.role_title }}</title>
+<style>{{ css | safe }}</style>
+</head>
+<body>
+<main class="page">
+  <header class="head">
+    <div class="who">
+      <h1>{{ r.name }}</h1>
+      {% if r.headline %}<p class="headline">{{ r.headline }}</p>{% endif %}
+    </div>
+    <ul class="contact">
+      {% for c in r.contact %}<li>{% if c.href %}<a href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}</li>{% endfor %}
+    </ul>
+  </header>
+  {% if r.summary %}<p class="summary">{{ r.summary }}</p>{% endif %}
+
+  {% if r.education %}
+  <section><h2>教育背景</h2>
+    {% for e in r.education %}
+    <div class="entry">
+      <div class="line"><strong>{{ e.school }} · {{ e.major }}（{{ e.degree }}）</strong><span class="date">{{ e.period }}</span></div>
+      {% for d in e.details %}<p class="detail">{{ d }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if r.experience %}
+  <section><h2>实习经历</h2>
+    {% for x in r.experience %}
+    <div class="entry">
+      <div class="line"><strong>{{ x.org }} · {{ x.title }}</strong><span class="date">{{ x.period }}</span></div>
+      {% if x.summary %}<p class="detail">{{ x.summary }}</p>{% endif %}
+      {% for p in x.projects %}{% set n = loop.index %}{% include "item.html.j2" %}{% endfor %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if r.projects %}
+  <section><h2>项目经历</h2>
+    {% for p in r.projects %}{% set n = loop.index %}{% include "item.html.j2" %}{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if r.publications %}
+  <section><h2>科研成果</h2>
+    {% for p in r.publications %}<div class="line small"><span>{{ p.title }}{% if p.venue %} · {{ p.venue }}{% endif %}</span><span class="date">{{ p.status }}</span></div>{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if r.skills %}
+  <section><h2>技能</h2>
+    {% for s in r.skills %}<p class="detail"><strong>{{ s.group }}</strong>　{{ s.items }}</p>{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if r.awards %}
+  <section><h2>荣誉奖项</h2>
+    <ul class="awards">{% for a in r.awards %}<li><span class="date">{{ a.year }}</span>{{ a.name }}{% if a.level %} {{ a.level }}{% endif %}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+</main>
+</body>
+</html>

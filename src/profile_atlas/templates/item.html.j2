@@ -1,0 +1,8 @@
+<div class="item">
+  <div class="line">
+    <strong class="title">{{ n }}、{% if p.url %}<a href="{{ p.url }}">{{ p.title }}</a>{% else %}{{ p.title }}{% endif %}</strong>
+    {% if p.period %}<span class="date">{{ p.period }}</span>{% endif %}
+  </div>
+  {% if p.tagline %}<p class="tagline">{{ p.tagline }}</p>{% endif %}
+  <ul class="bullets">{% for b in p.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+</div>

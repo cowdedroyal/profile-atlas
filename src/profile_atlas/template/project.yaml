@@ -1,0 +1,56 @@
+# .portfolio/project.yaml —— 这个项目的“证据化”清单
+# 规则只有一条：没有证据的内容不能上简历。校验：profile-atlas check .
+schema: portfolio/project@1
+id: my-project                 # 小写短横线，通常和仓库名一致
+title: 项目中文名               # ≤40 字，简历上的项目名
+kind: personal                 # personal | research | course | internship | contribution
+role: solo                     # solo | lead | core | contributor
+period: {start: "2026-01", end: null}   # end: null 表示进行中
+visibility: summary            # public（可链接代码地图）| summary（只出文字）| hidden（只参与分析）
+
+summary: 一句话：做了什么系统、解决什么问题        # ≤60 字
+problem: >-                                        # ≤200 字
+  根本问题是什么；现有做法差在哪；为什么值得做。
+
+techs:                         # slug 用知识地图里的；地图里没有就加 proposed
+  - slug: retrieval-augmented-generation
+    depth: core                # core（围绕它做文章）| used（用上并调过）| touched（接入过）
+  # - slug: reciprocal-rank-fusion
+  #   depth: core
+  #   proposed: {name: Reciprocal Rank Fusion, name_zh: 倒数排名融合, kind: method}
+
+contributions:                 # 我做了什么；每条都可能变成一个简历 bullet
+  - what: 实现了 X，使 Y
+    why: 因为 Z
+    techs: [retrieval-augmented-generation]
+    evidence: [code-x]
+
+decisions:                     # 关键取舍：面试最常问
+  - choice: 选 A 不选 B
+    why: 因为……
+    alternatives: [B]
+    evidence: [code-x]
+
+findings:                      # 实验发现，失败和反直觉结果同样值钱
+  - claim: 发现……
+    kind: insight              # insight | negative | failure | pitfall
+    evidence: [results]
+
+metrics:                       # 数字必须能在证据里找到
+  - name: Recall@5
+    value: 0.57
+    baseline: {value: 0.44, label: 单路稠密检索}
+    setting: 在什么数据、多大规模、什么硬件上测的
+    scale: pilot               # smoke | pilot | full | production
+    evidence: [results]
+
+evidence:                      # 证据：必须是已提交的文件、存在的提交或公开链接
+  - id: code-x
+    type: file
+    path: src/x.py
+    quote: ["def x("]          # 必须原样出现在文件里
+  - id: results
+    type: file
+    path: docs/results.md
+
+links: {}

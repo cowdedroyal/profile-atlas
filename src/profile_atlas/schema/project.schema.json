@@ -1,0 +1,508 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cowdedroyal/profile-atlas/schema/project.schema.json",
+  "title": "portfolio/project@1",
+  "description": "One project's evidence-backed manifest, stored at .portfolio/project.yaml in the project repository.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "id",
+    "title",
+    "kind",
+    "role",
+    "period",
+    "visibility",
+    "summary",
+    "problem",
+    "techs"
+  ],
+  "properties": {
+    "schema": {
+      "const": "portfolio/project@1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 40,
+      "description": "中文标题，简历上的项目名"
+    },
+    "title_en": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "kind": {
+      "enum": [
+        "personal",
+        "research",
+        "course",
+        "internship",
+        "contribution"
+      ],
+      "description": "personal=自学/个人实验，research=科研，course=课程，internship=实习（代码通常不在 GitHub），contribution=给他人开源项目的贡献"
+    },
+    "role": {
+      "enum": [
+        "solo",
+        "lead",
+        "core",
+        "contributor"
+      ]
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+        },
+        "end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+          "description": "null 表示进行中"
+        }
+      }
+    },
+    "visibility": {
+      "enum": [
+        "public",
+        "summary",
+        "hidden"
+      ],
+      "description": "public=简历可链接代码地图与讲解卡片；summary=只出现文字；hidden=只参与分析，不上任何公开页面"
+    },
+    "status": {
+      "enum": [
+        "idea",
+        "active",
+        "done",
+        "archived"
+      ],
+      "default": "active",
+      "description": "idea=刚立项或还没开始，可以没有 contributions/evidence；active=在做；done=完成；archived=保留但不再展示。只有 active 和 done 进入简历生成，idea 和 archived 一律排除"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 60,
+      "description": "一句话：做了什么系统、解决什么问题"
+    },
+    "problem": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "为什么值得做：根本问题是什么，现有做法差在哪"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 80
+      },
+      "description": "这个项目想回答的问题。立项时写，做完后对照 findings 回看"
+    },
+    "techs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slug",
+          "depth"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "知识地图节点 slug"
+          },
+          "depth": {
+            "enum": [
+              "core",
+              "used",
+              "touched"
+            ],
+            "description": "core=项目围绕它做文章；used=实际用上并调过；touched=接入过"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "proposed": {
+            "type": "object",
+            "description": "知识地图里还没有这个节点时填写，校验器会把它列为 kmap 扩展待办",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "kind"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "name_zh": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "concept",
+                  "method",
+                  "model",
+                  "system",
+                  "dataset",
+                  "application"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "contributions": {
+      "type": "array",
+      "description": "我做了什么。每条都可能成为一个简历 bullet，所以每条都要有证据",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "what",
+          "evidence"
+        ],
+        "properties": {
+          "what": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 80
+          },
+          "why": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "techs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "$ref": "#/$defs/refs"
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "description": "关键取舍：选了什么、为什么、放弃了什么。面试里最值钱的部分",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "choice",
+          "why",
+          "evidence"
+        ],
+        "properties": {
+          "choice": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 60
+          },
+          "why": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 160
+          },
+          "alternatives": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 60
+            }
+          },
+          "evidence": {
+            "$ref": "#/$defs/refs"
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "实验发现，包括反直觉结果和失败",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claim",
+          "kind",
+          "evidence"
+        ],
+        "properties": {
+          "claim": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 120
+          },
+          "kind": {
+            "enum": [
+              "insight",
+              "negative",
+              "failure",
+              "pitfall"
+            ]
+          },
+          "evidence": {
+            "$ref": "#/$defs/refs"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value",
+          "setting",
+          "scale",
+          "evidence"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "baseline": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "value",
+              "label"
+            ],
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 40
+              }
+            }
+          },
+          "setting": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 80,
+            "description": "在什么数据、什么规模、什么硬件上测的"
+          },
+          "scale": {
+            "enum": [
+              "smoke",
+              "pilot",
+              "full",
+              "production"
+            ],
+            "description": "smoke=只验证链路打通；pilot=小规模但结论成立；full=完整实验；production=线上/真实用户"
+          },
+          "evidence": {
+            "$ref": "#/$defs/refs"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "type": {
+            "enum": [
+              "file",
+              "commit",
+              "url",
+              "external"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "description": "type=file：仓库内路径，必须已提交"
+          },
+          "quote": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 2
+            },
+            "description": "必须原样出现在文件里的片段（空白会归一化）；有 quote 时指标数字只在 quote 里找"
+          },
+          "sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{7,40}$"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "file"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "path"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "commit"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "sha"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "url"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "url"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "external"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "note"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repo": {
+          "type": "string",
+          "format": "uri"
+        },
+        "demo": {
+          "type": "string",
+          "format": "uri"
+        },
+        "atlas": {
+          "type": "string",
+          "format": "uri",
+          "description": "code-atlas 静态地图"
+        },
+        "explainers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "atlas-explainer 卡片 id"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "evidence 条目的 id"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "not": {
+          "properties": {
+            "status": {
+              "const": "idea"
+            }
+          },
+          "required": [
+            "status"
+          ]
+        }
+      },
+      "then": {
+        "required": [
+          "contributions",
+          "evidence"
+        ],
+        "properties": {
+          "contributions": {
+            "minItems": 1
+          },
+          "evidence": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

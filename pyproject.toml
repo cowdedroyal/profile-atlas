@@ -1,0 +1,28 @@
+[project]
+name = "profile-atlas"
+version = "0.1.0"
+description = "Turn a GitHub account's projects into evidence-backed, role-specific resumes."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+    "jsonschema>=4.21",
+    "jinja2>=3.1",
+]
+
+[project.scripts]
+profile-atlas = "profile_atlas.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/profile_atlas"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

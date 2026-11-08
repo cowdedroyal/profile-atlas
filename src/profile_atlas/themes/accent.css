@@ -1,0 +1,5 @@
+/* 左侧色块栏目标题与强调色，适合工程 / 应用类岗位 */
+:root { --accent: #2f5d8a; --rule: #d3dbe4; }
+h2 { border-bottom: none; padding-left: 2.2mm; border-left: 1.2mm solid var(--accent); line-height: 1.2; }
+.head { border-bottom-color: var(--accent); }
+.title a, .title { color: #17324d; }

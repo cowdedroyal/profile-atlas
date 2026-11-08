@@ -1,0 +1,17 @@
+id: embodied
+title: 具身智能算法工程师
+headline: 具身智能 / 多模态算法工程师
+theme: accent
+description: VLA、具身 Agent、多模态理解与机器人系统
+weights:
+  topics:
+    embodied-ai: 1.0
+    multimodal-models: 0.8
+    computer-vision: 0.6
+    llm-agents: 0.6
+  techs:
+    vision-language-action-model: 1.0
+    model-context-protocol: 0.6
+    ros1-catkin: 0.5
+    camera-calibration-kalibr: 0.4
+limits: {projects: 3, bullets: 3}

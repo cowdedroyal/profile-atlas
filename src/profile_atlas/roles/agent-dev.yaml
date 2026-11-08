@@ -1,0 +1,20 @@
+id: agent-dev
+title: Agent 开发工程师
+headline: 大模型应用 / Agent 开发工程师
+theme: accent
+description: Agent 工作流、工具调用、RAG 与评测
+weights:
+  topics:
+    llm-agents: 1.0
+    retrieval-and-knowledge-augmentation: 0.9
+    llm-evaluation: 0.7
+    large-language-models: 0.5
+    efficient-inference-and-serving: 0.4
+    post-training-and-alignment: 0.4
+  techs:
+    langgraph: 1.0
+    model-context-protocol: 1.0
+    tool-use: 1.0
+    react: 0.9
+    fastapi: 0.6
+limits: {projects: 3, bullets: 3}

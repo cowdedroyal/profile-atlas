@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "portfolio/profile@1",
+  "description": "Private, local-only facts about a person: contact, education, work experience, and projects that are not on GitHub. Lives in ~/.config/profile-atlas/profile.yaml and is never committed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "name"
+  ],
+  "properties": {
+    "schema": {
+      "const": "portfolio/profile@1"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "headline": {
+      "type": "string",
+      "maxLength": 60,
+      "description": "求职意向等一句话，可被岗位覆盖"
+    },
+    "public_name": {
+      "type": "string",
+      "description": "公开版里显示的称呼；真实姓名在公开版中被禁止出现。默认“匿名”"
+    },
+    "public_github": {
+      "type": "boolean",
+      "default": false,
+      "description": "公开版是否放 GitHub 主页和项目链接。GitHub 显示名可能是真名，默认不放"
+    },
+    "contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "github": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        }
+      }
+    },
+    "photo": {
+      "type": "string",
+      "description": "本机图片路径"
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "school",
+          "degree",
+          "start"
+        ],
+        "properties": {
+          "school": {
+            "type": "string"
+          },
+          "degree": {
+            "type": "string"
+          },
+          "major": {
+            "type": "string"
+          },
+          "start": {
+            "$ref": "#/$defs/month"
+          },
+          "end": {
+            "$ref": "#/$defs/month_or_null"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "public_alias": {
+            "type": "string",
+            "description": "公开版里代替学校名，例如“某高校”；不填则公开版不显示这段教育经历"
+          }
+        }
+      }
+    },
+    "experience": {
+      "type": "array",
+      "description": "实习与工作。代码通常不能放上 GitHub，事实写在这里",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "org",
+          "title",
+          "period"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "org": {
+            "type": "string"
+          },
+          "public_alias": {
+            "type": "string",
+            "description": "公开版里代替公司名，例如“某具身智能公司”"
+          },
+          "title": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/$defs/period"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/project"
+            }
+          }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "description": "不在 GitHub 上的项目：竞赛、科研、个人项目",
+      "items": {
+        "$ref": "#/$defs/project"
+      }
+    },
+    "publications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "status"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "awards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "year",
+          "name"
+        ],
+        "properties": {
+          "year": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "group",
+          "items"
+        ],
+        "properties": {
+          "group": {
+            "type": "string"
+          },
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "public_redact": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "公开版里额外禁止出现的字符串（联系方式和公司名已自动禁止）"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+    },
+    "month": {
+      "type": "string",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+    },
+    "month_or_null": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start"
+      ],
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/month"
+        },
+        "end": {
+          "$ref": "#/$defs/month_or_null"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "kind",
+        "facts",
+        "verified"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "internship",
+            "research",
+            "competition",
+            "personal",
+            "course"
+          ]
+        },
+        "period": {
+          "$ref": "#/$defs/period"
+        },
+        "role": {
+          "type": "string",
+          "description": "例如“独立完成”“第一作者”"
+        },
+        "tagline": {
+          "type": "string"
+        },
+        "techs": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "slug"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "slug": {
+                    "type": "string"
+                  },
+                  "depth": {
+                    "enum": [
+                      "core",
+                      "used",
+                      "touched"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "facts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "可以写进简历的事实陈述；数字只能来自这里或 metrics"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "value",
+              "scale"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "baseline": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "number"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              },
+              "setting": {
+                "type": "string"
+              },
+              "scale": {
+                "enum": [
+                  "smoke",
+                  "pilot",
+                  "full",
+                  "production"
+                ]
+              }
+            }
+          }
+        },
+        "verified": {
+          "type": "boolean",
+          "description": "事实和数字都已和原始记录核对过；false 的项目不会进入简历"
+        },
+        "source": {
+          "type": "string",
+          "description": "事实从哪来，便于日后复核"
+        },
+        "public": {
+          "type": "boolean",
+          "default": true,
+          "description": "false 时不进入公开版"
+        },
+        "links": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

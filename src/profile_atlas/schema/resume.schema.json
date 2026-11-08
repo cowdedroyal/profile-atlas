@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "portfolio/resume@1",
+  "description": "A resume draft written by the agent from a plan. Every item refers back to a plan item; every number must be found in that item's facts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "role"],
+  "properties": {
+    "schema": {"const": "portfolio/resume@1"},
+    "role": {"type": "string"},
+    "theme": {"type": "string"},
+    "headline": {"type": "string", "maxLength": 60},
+    "summary": {"type": "string", "maxLength": 160},
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref"],
+        "properties": {
+          "ref": {"type": "string", "pattern": "^edu:\\d+$"},
+          "details": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "experience": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "projects"],
+        "properties": {
+          "ref": {"type": "string", "pattern": "^exp:"},
+          "summary": {"type": "string"},
+          "projects": {"type": "array", "items": {"$ref": "#/$defs/item"}}
+        }
+      }
+    },
+    "projects": {"type": "array", "items": {"$ref": "#/$defs/item"}},
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["group", "items"],
+        "properties": {"group": {"type": "string"}, "items": {"type": "string"}}
+      }
+    },
+    "show": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {"publications": {"type": "boolean"}, "awards": {"type": "boolean"}}
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "title", "bullets"],
+      "properties": {
+        "ref": {"type": "string", "pattern": "^(gh|local|exp):"},
+        "title": {"type": "string", "maxLength": 60},
+        "tagline": {"type": "string", "maxLength": 90},
+        "bullets": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 4}}
+      }
+    }
+  }
+}
