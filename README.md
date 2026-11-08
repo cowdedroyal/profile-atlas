@@ -47,7 +47,8 @@ profile-atlas plan --role llm-algorithm            # 选项目、排序，输出
 # 让 agent 按 skill/resume-builder 写草稿，或自己按 schema 写
 profile-atlas verify --role llm-algorithm
 profile-atlas render --role llm-algorithm --both   # 完整版 + 公开版
-profile-atlas site --serve                         # 本机总览各版本：http://127.0.0.1:<port>/
+profile-atlas open                                 # 在浏览器里打开本机的简历总览页
+profile-atlas open --folder                        # 在访达里打开输出目录（~/.local 是隐藏目录，访达默认看不到）
 ```
 
 ## 项目清单

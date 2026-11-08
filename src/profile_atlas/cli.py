@@ -242,6 +242,31 @@ def cmd_site(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_open(args: argparse.Namespace) -> int:
+    """Open the local overview page in the browser, or the output folder in the file manager.
+
+    The data lives under ~/.local/share, which Finder hides; this saves looking for it.
+    """
+    import os
+    import subprocess
+
+    from .site import build_site
+
+    cfg = load_config()
+    login = _login(cfg, args.login)
+    page = build_site(cfg, login)
+    target = page.parent / "out" if args.folder else page
+    target.mkdir(parents=True, exist_ok=True) if args.folder else None
+    if sys.platform == "darwin":
+        subprocess.run(["open", str(target)], check=False)
+    elif os.name == "nt":
+        os.startfile(str(target))  # type: ignore[attr-defined]
+    else:
+        subprocess.run(["xdg-open", str(target)], check=False)
+    _emit({"ok": True, "opened": str(target)})
+    return 0
+
+
 # ---------------------------------------------------------------- main
 
 def main(argv: list[str] | None = None) -> int:
@@ -319,6 +344,11 @@ def main(argv: list[str] | None = None) -> int:
     st.add_argument("--port", type=int, default=0)
     st.add_argument("--login")
     st.set_defaults(func=cmd_site)
+
+    op = sub.add_parser("open", help="在浏览器打开本机简历总览页；--folder 在访达/文件管理器里打开输出目录")
+    op.add_argument("--folder", action="store_true")
+    op.add_argument("--login")
+    op.set_defaults(func=cmd_open)
 
     args = ap.parse_args(argv)
     return args.func(args)
