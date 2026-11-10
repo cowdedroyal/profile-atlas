@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "portfolio/resume@1",
-  "description": "A resume draft written by the agent from a plan. Every item refers back to a plan item; every number must be found in that item's facts.",
+  "description": "A resume draft written by the agent from a plan. Every item refers back to a plan item; every number must be found in that item's facts. Text may use **bold** for key numbers or a short leading label; no other markup.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "role"],

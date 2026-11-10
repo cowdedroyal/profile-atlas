@@ -239,3 +239,114 @@ def test_sync_finds_nested_manifests_and_skips_templates(tmp_path):
     assert [m["key"] for m in idx["manifests"]] == ["me/app", "me/sandbox-x/exp1"]
     assert all(m["ok"] for m in idx["manifests"])
     assert not (cfg.user_dir("me") / "manifests.partial").exists()
+
+
+# ---------------------------------------------------------------- layout: photo, bold, fit
+
+PNG_1PX = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
+
+
+def test_photo_only_in_private_variant(tmp_path):
+    _, plan = make_plan(tmp_path)
+    photo = tmp_path / "me.png"
+    photo.write_bytes(PNG_1PX)
+    private = R.render_html(plan, draft(), "minimal", public=False, photo=photo)
+    public = R.render_html(plan, draft(), "minimal", public=True, photo=photo)
+    assert 'src="data:image/png;base64,' in private
+    assert "data:image" not in public and "证件照" not in public
+
+
+def test_photo_inside_git_repo_is_refused(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / "me.jpg").write_bytes(b"x")
+    _, plan = make_plan(tmp_path / "x")
+    with pytest.raises(PrivacyError):
+        R.render_html(plan, draft(), "minimal", public=False, photo=tmp_path / "me.jpg")
+
+
+def test_bold_markup_is_rendered_and_everything_else_escaped(tmp_path):
+    _, plan = make_plan(tmp_path)
+    d = draft(experience=[{"ref": "exp:acme-2025", "projects": [
+        {"ref": "exp:acme-2025/sft", "title": "领域 SFT",
+         "bullets": ["**评测：**通过率 61.5% → **70.2%** <script>"]}]}])
+    assert verify(plan, d).ok                      # ** doesn't disturb number checking
+    html = R.render_html(plan, d, "minimal", public=False)
+    assert "<strong>评测：</strong>" in html and "<strong>70.2%</strong>" in html
+    assert "&lt;script&gt;" in html
+
+
+def test_page_carries_fit_script_for_every_theme(tmp_path):
+    _, plan = make_plan(tmp_path)
+    for t in R.themes():
+        html = R.render_html(plan, draft(), t, public=False)
+        assert "root.dataset.fill" in html and "--fs" in html
+
+
+def test_single_month_period_is_not_a_range():
+    assert R._period({"start": "2026-03", "end": "2026-03"}) == "2026.03"
+    assert R._period({"start": "2026-03", "end": None}) == "2026.03 - 至今"
+
+
+# ---------------------------------------------------------------- duplicates & basis
+
+def _with(profile_patch, manifests):
+    import copy
+    prof = copy.deepcopy(PROFILE)
+    profile_patch(prof)
+    return prof
+
+
+def make_plan_with(tmp_path, prof, manifests):
+    cfg = Config(config_dir=tmp_path / "cfg", data_dir=tmp_path / "data")
+    mdir = cfg.user_dir("demo") / "manifests"
+    mdir.mkdir(parents=True)
+    entries = []
+    for i, m in enumerate(manifests):
+        f = f"m{i}.yaml"
+        (mdir / f).write_text(yaml.safe_dump(m, allow_unicode=True))
+        entries.append({"key": f"lab/{m['id']}", "file": f, "ok": True, "status": m.get("status", "active"),
+                        "visibility": "public", "project_url": f"https://github.com/lab/{m['id']}"})
+    return build_plan(cfg, {"login": "demo", "manifests": entries}, prof, ROLE, KMAP)
+
+
+def test_local_project_linked_to_repo_appears_once_with_both_facts(tmp_path):
+    prof = _with(lambda p: p["projects"][0].update(repo="lab/rag", facts=["定榜第 58 名"]), None)
+    plan = make_plan_with(tmp_path, prof, [MANIFEST])
+    refs = [p["ref"] for p in plan["projects"]]
+    assert refs == ["gh:lab/rag"]
+    assert any(x["ref"] == "local:rec" and "已并入" in x["reason"] for x in plan["excluded"])
+    d = draft(projects=[{"ref": "gh:lab/rag", "title": "RAG 实验", "bullets": ["Recall@5 0.569，定榜第 58 名"]}])
+    assert verify(plan, d).ok
+    stale = draft(projects=[{"ref": "local:rec", "title": "生成式推荐", "bullets": ["总分 0.86"]}])
+    rep = verify(plan, stale)
+    assert "ref-unknown" in codes(rep) and "已并入" in rep.issues[0].message
+
+
+def test_internship_linked_to_repo_stays_in_experience(tmp_path):
+    prof = _with(lambda p: p["experience"][0]["projects"][0].update(repo="lab/rag"), None)
+    plan = make_plan_with(tmp_path, prof, [MANIFEST])
+    assert "gh:lab/rag" not in [p["ref"] for p in plan["projects"]]
+    sft = plan["experience"][0]["projects"][0]
+    assert sft["facts"]["repo"]["metrics"] and sft["visibility"] == "hidden"   # repo is hidden → stricter wins
+    # the repo's smoke metric (0.8 → 0.9) can't be sold as an improvement under the internship either
+    d = draft(experience=[{"ref": "exp:acme-2025", "projects": [
+        {"ref": "exp:acme-2025/sft", "title": "领域 SFT", "bullets": ["准确率 0.8 → 0.9"]}]}], projects=[])
+    assert "smoke-as-improvement" in codes(verify(plan, d))
+
+
+def test_pending_source_with_verified_true_is_flagged():
+    from profile_atlas.profile import consistency_warnings
+    import copy
+    prof = copy.deepcopy(PROFILE)
+    prof["projects"][0].update(source="导入自旧简历，待本人确认", basis="attested")
+    w = consistency_warnings(prof)
+    assert any("rec" in x and "待确认" in x for x in w)
+    prof["projects"][0]["source"] = "本人确认：原始记录留在原公司"
+    assert not any(x.startswith("rec:") for x in consistency_warnings(prof))
+    assert validate_profile(prof) == []
+
+
+def test_merged_period_is_the_union(tmp_path):
+    prof = _with(lambda p: p["projects"][0].update(repo="lab/rag", period={"start": "2024-12", "end": "2025-01"}), None)
+    plan = make_plan_with(tmp_path, prof, [MANIFEST])
+    assert plan["projects"][0]["period"] == {"start": "2024-12", "end": "2025-02"}

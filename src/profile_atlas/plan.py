@@ -126,8 +126,25 @@ def local_item(p: dict, ref: str, role: dict, kmap) -> dict:
         "score": score(techs, metrics, role, kmap),
         "techs": [s for s, _ in techs],
         "facts": {"role": p.get("role"), "tagline": p.get("tagline"), "facts": p["facts"], "metrics": metrics,
-                  "source": p.get("source")},
+                  "source": p.get("source"), "basis": p.get("basis")},
     }
+
+
+def _absorb(keep: dict, other: dict, key: str) -> None:
+    """Merge a duplicate's facts into the item that stays. The stricter visibility wins."""
+    keep["facts"][key] = other["facts"]
+    keep["techs"] = list(dict.fromkeys(keep["techs"] + other["techs"]))
+    keep["score"] = max(keep["score"], other["score"])
+    keep["url"] = keep.get("url") or other.get("url")
+    pa, pb = keep.get("period"), other.get("period")
+    if pa and pb:  # the union of both spans; an open end ("至今") wins
+        ends = [pa.get("end"), pb.get("end")]
+        keep["period"] = {"start": min(pa["start"], pb["start"]), "end": None if None in ends else max(ends)}
+    else:
+        keep["period"] = pa or pb
+    if "hidden" in (keep.get("visibility"), other.get("visibility")):
+        keep["visibility"] = "hidden"
+    keep.setdefault("merged", []).append(other["ref"])
 
 
 # ---------------------------------------------------------------- plan
@@ -136,6 +153,7 @@ def build_plan(cfg: Config, index: dict, profile: dict, role: dict, kmap: KmapIn
     excluded: list[dict] = []
     projects: list[dict] = []
 
+    gh_items: dict[str, dict] = {}
     for entry in index["manifests"]:
         ref = f"gh:{entry['key']}"
         if not entry.get("ok"):
@@ -144,14 +162,23 @@ def build_plan(cfg: Config, index: dict, profile: dict, role: dict, kmap: KmapIn
         if entry.get("status") not in IN_RESUME:
             excluded.append({"ref": ref, "reason": f"status: {entry.get('status')}，不进入简历"})
             continue
-        projects.append(github_item(entry, load_manifest(cfg, index, entry), role, kmap))
+        gh_items[entry["key"]] = github_item(entry, load_manifest(cfg, index, entry), role, kmap)
 
+    # The same project can live both in the profile and on GitHub (`repo:` links them). It appears once:
+    # an internship stays under its experience and takes in the repo's facts; anything else becomes the
+    # repo item, which takes in the profile's (often attested) facts.
+    absorbed: set[str] = set()
     for p in profile.get("projects", []):
         ref = f"local:{p['id']}"
         if not p["verified"]:
             excluded.append({"ref": ref, "reason": "verified: false，事实和数字还没核对"})
             continue
-        projects.append(local_item(p, ref, role, kmap))
+        item = local_item(p, ref, role, kmap)
+        if p.get("repo") in gh_items:
+            _absorb(gh_items[p["repo"]], item, "profile")
+            excluded.append({"ref": ref, "reason": f"与 gh:{p['repo']} 是同一项目，已并入"})
+            continue
+        projects.append(item)
 
     experience = []
     for exp in profile.get("experience", []):
@@ -161,12 +188,18 @@ def build_plan(cfg: Config, index: dict, profile: dict, role: dict, kmap: KmapIn
             if not p["verified"]:
                 excluded.append({"ref": ref, "reason": "verified: false，事实和数字还没核对"})
                 continue
-            items.append(local_item(p, ref, role, kmap))
+            item = local_item(p, ref, role, kmap)
+            if p.get("repo") in gh_items:
+                _absorb(item, gh_items[p["repo"]], "repo")
+                absorbed.add(p["repo"])
+                excluded.append({"ref": f"gh:{p['repo']}", "reason": f"与实习项目 {ref} 是同一项目，已并入"})
+            items.append(item)
         items.sort(key=lambda i: -i["score"])
         experience.append({"ref": f"exp:{exp['id']}", "org": exp["org"], "public_alias": exp.get("public_alias"),
                            "title": exp["title"], "period": exp["period"], "summary": exp.get("summary"),
                            "projects": items})
 
+    projects += [it for key, it in gh_items.items() if key not in absorbed]
     projects.sort(key=lambda i: (-i["score"], i["title"]))
     limit = int(role.get("limits", {}).get("projects", 3))
     for i, p in enumerate(projects):
@@ -178,7 +211,7 @@ def build_plan(cfg: Config, index: dict, profile: dict, role: dict, kmap: KmapIn
         "role": role,
         "kmap": kmap.source if kmap else None,
         "profile": {k: profile.get(k) for k in ("name", "public_name", "public_github", "contact", "education",
-                                                 "publications", "awards", "skills")}
+                                                 "publications", "awards", "skills", "photo")}
                    | {"headline": role.get("headline") or profile.get("headline")},
         "experience": experience,
         "projects": projects,

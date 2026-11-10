@@ -53,7 +53,7 @@
     },
     "photo": {
       "type": "string",
-      "description": "本机图片路径"
+      "description": "证件照的本机路径（jpg/png/webp，不能在 git 仓库里）；只出现在完整版，公开版永不包含"
     },
     "education": {
       "type": "array",
@@ -371,7 +371,7 @@
         },
         "verified": {
           "type": "boolean",
-          "description": "事实和数字都已和原始记录核对过；false 的项目不会进入简历"
+          "description": "事实和数字已经核对（basis: records）或由本人确认（basis: attested）；false 的项目不会进入简历"
         },
         "source": {
           "type": "string",
@@ -387,6 +387,18 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(/.+)?$",
+          "description": "同一个项目在 GitHub 上的仓库（owner/name，子目录项目写 owner/name/subdir）。生成计划时两边合并成一条：实习项目保留在经历里、吸收仓库的事实；其他项目以仓库为准、吸收这里本人确认的事实"
+        },
+        "basis": {
+          "enum": [
+            "records",
+            "attested"
+          ],
+          "description": "事实依据。records：已和原始记录（日志、结果文件、榜单截图）核对；attested：原始记录无法取得（例如留在原公司），由本人确认数值。两者都可以 verified: true；attested 的数字要准备好在面试里口头讲清来源"
         }
       }
     }

@@ -44,6 +44,15 @@ def corpus(item: dict) -> str:
     return "\n".join(_flatten([item["title"], item.get("period"), item["facts"]])).replace(",", "")
 
 
+def _metrics(facts: dict) -> list[dict]:
+    """Metrics of an item, including those of a merged duplicate (facts.repo / facts.profile)."""
+    out = list(facts.get("metrics") or [])
+    for k in ("repo", "profile"):
+        if isinstance(facts.get(k), dict):
+            out += _metrics(facts[k])
+    return out
+
+
 def _missing_numbers(text: str, pool: str) -> list[str]:
     return [n for n in numbers(text) if not number_in(pool, float(n))]
 
@@ -98,13 +107,14 @@ def verify(plan: dict, draft: dict) -> Report:
 
     by_ref = {p["ref"]: p for p in plan["projects"]}
     exps = {e["ref"]: e for e in plan["experience"]}
+    why = {x["ref"]: x["reason"] for x in plan.get("excluded", [])}
 
     def check_item(item: dict, plan_item: dict, where: str) -> None:
         pool = corpus(plan_item)
         for field in ("title", "tagline"):
             for n in _missing_numbers(item.get(field) or "", pool):
                 r.add("error", f"{where}.{field}", "number-not-in-facts", f"{n} 在 {plan_item['ref']} 的事实里找不到")
-        smoke = [v for m in plan_item["facts"].get("metrics", []) if m.get("scale") == "smoke"
+        smoke = [v for m in _metrics(plan_item["facts"]) if m.get("scale") == "smoke"
                  for v in (m["value"], (m.get("baseline") or {}).get("value")) if v is not None]
         if len(item["bullets"]) > limit:
             r.add("warning", where, "too-many-bullets", f"{len(item['bullets'])} 条，岗位建议不超过 {limit} 条")
@@ -120,7 +130,8 @@ def verify(plan: dict, draft: dict) -> Report:
     for i, p in enumerate(draft.get("projects", [])):
         pi = by_ref.get(p["ref"])
         if pi is None:
-            r.add("error", f"projects[{i}]", "ref-unknown", f"计划里没有 {p['ref']}（可能未核实、已归档或不存在）")
+            r.add("error", f"projects[{i}]", "ref-unknown",
+                  f"计划里没有 {p['ref']}（{why.get(p['ref'], '可能未核实、已归档或不存在')}）")
             continue
         if not pi.get("selected"):
             r.add("warning", f"projects[{i}]", "not-selected", f"{p['ref']} 不在本岗位的推荐列表里（得分 {pi['score']}）")

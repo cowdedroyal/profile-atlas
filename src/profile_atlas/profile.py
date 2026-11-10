@@ -45,6 +45,24 @@ def load_profile(cfg: Config, path: Path | None = None) -> dict:
     return data
 
 
+PENDING = ("待本人确认", "待确认", "待核对", "待核实", "TODO")
+
+
+def consistency_warnings(data: dict) -> list[str]:
+    """verified: true next to a source that still says it's pending is a contradiction the tool can't resolve."""
+    out = []
+    items = [(p["id"], p) for p in data.get("projects", [])]
+    items += [(f"{e['id']}/{p['id']}", p) for e in data.get("experience", []) for p in e.get("projects", [])]
+    for pid, p in items:
+        src = p.get("source") or ""
+        if p.get("verified") and any(k in src for k in PENDING):
+            out.append(f"{pid}: verified 是 true，但 source 仍写着待确认（{src[:40]}…）。核对后改 source，"
+                       "原始记录拿不到就写明原因并设 basis: attested；还没确认就改回 verified: false")
+        if p.get("verified") and not p.get("basis"):
+            out.append(f"{pid}: 没写 basis（records = 已对照原始记录，attested = 记录拿不到、本人确认）")
+    return out
+
+
 def permission_warning(path: Path) -> str | None:
     mode = path.stat().st_mode
     if mode & (stat.S_IRGRP | stat.S_IROTH):
@@ -73,7 +91,9 @@ experience:                       # 实习与工作：公司代码不能上 GitH
         kind: internship
         facts: ["可以写进简历的事实；数字只能来自这里或 metrics"]
         metrics: []
-        verified: false            # 和原始记录核对过之后改成 true，否则不会进入简历
+        verified: false            # 核对或本人确认之后改成 true，否则不会进入简历
+        basis: records             # records：已对照原始记录；attested：记录拿不到（如留在原公司），本人确认
+        # repo: owner/name         # 同一项目在 GitHub 上也有仓库时填写，生成计划时两边合并
 projects: []                      # 不在 GitHub 上的竞赛、科研、个人项目，格式同上
 publications: []
 awards: []

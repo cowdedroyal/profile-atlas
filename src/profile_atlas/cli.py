@@ -113,7 +113,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
 
 
 def cmd_profile(args: argparse.Namespace) -> int:
-    from .profile import ProfileError, init_profile, load_profile, permission_warning
+    from .profile import ProfileError, consistency_warnings, init_profile, load_profile, permission_warning
 
     cfg = load_config()
     try:
@@ -130,7 +130,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
                        if not p["verified"]]
         warn = permission_warning(cfg.profile_path)
         _emit({"ok": True, "path": str(cfg.profile_path), "unverified": unverified,
-               "warnings": [warn] if warn else [],
+               "warnings": ([warn] if warn else []) + consistency_warnings(data),
                "note": "unverified 里的项目在核对并改成 verified: true 之前不会进入简历" if unverified else None})
         return 0
     except (ProfileError, PrivacyError) as e:
@@ -185,7 +185,17 @@ def cmd_plan(args: argparse.Namespace) -> int:
 def _load_draft(cfg, login: str, role_id: str, path: str | None) -> dict:
     p = Path(path).expanduser() if path else draft_path(cfg, login, role_id)
     ensure_private(p, "简历草稿")
-    return yaml.safe_load(p.read_text(encoding="utf-8"))
+    if not p.exists():
+        raise DraftError(f"找不到草稿 {p}：先运行 plan，再按 plan 输出的路径写草稿")
+    try:
+        return yaml.safe_load(p.read_text(encoding="utf-8"))
+    except yaml.YAMLError as e:
+        hint = "以 ** 开头的条目要加引号，例如 - '**数据构建：**…'" if "alias" in str(e) else ""
+        raise DraftError(f"草稿不是合法的 YAML：{str(e).splitlines()[0]} {getattr(e, 'problem_mark', '') or ''} {hint}".strip())
+
+
+class DraftError(Exception):
+    pass
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
@@ -214,9 +224,12 @@ def cmd_render(args: argparse.Namespace) -> int:
     if not rep.ok:
         _emit({"ok": False, "error": "草稿没有通过核对，先修正", **rep.as_dict()})
         return 1
-    extra = load_profile(cfg).get("public_redact", [])
+    prof = load_profile(cfg)
+    extra = prof.get("public_redact", [])
     try:
-        outs = [render(cfg, plan, draft, args.theme, public=pub, pdf=not args.no_pdf, extra_forbidden=extra)
+        # photo comes from the live profile, so adding one doesn't require re-planning
+        outs = [render(cfg, plan, draft, args.theme, public=pub, pdf=not args.no_pdf, extra_forbidden=extra,
+                       photo=prof.get("photo"))
                 for pub in ([False, True] if args.both else [args.public])]
     except RenderError as e:
         _emit({"ok": False, "error": str(e)})
@@ -351,7 +364,11 @@ def main(argv: list[str] | None = None) -> int:
     op.set_defaults(func=cmd_open)
 
     args = ap.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except DraftError as e:
+        _emit({"ok": False, "error": str(e)})
+        return 1
 
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
+{%- macro icon(kind) -%}
+<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">{{ ICONS[kind] | safe }}</svg>
+{%- endmacro -%}
 <!doctype html>
 <html lang="zh-CN" data-theme="{{ theme }}">
 <head>
@@ -8,23 +11,28 @@
 </head>
 <body>
 <main class="page">
-  <header class="head">
+<div class="content" id="content">
+  <div class="topbar"></div>
+  <header class="head{% if r.photo %} has-photo{% endif %}">
     <div class="who">
       <h1>{{ r.name }}</h1>
-      {% if r.headline %}<p class="headline">{{ r.headline }}</p>{% endif %}
+      {% if r.contact %}
+      <ul class="contact">
+        {% for c in r.contact %}<li>{{ icon(c.kind) }}{% if c.href %}<a href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}</li>{% endfor %}
+      </ul>
+      {% endif %}
+      {% if r.headline %}<p class="headline">{{ icon("target") }}{{ r.headline }}</p>{% endif %}
     </div>
-    <ul class="contact">
-      {% for c in r.contact %}<li>{% if c.href %}<a href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}</li>{% endfor %}
-    </ul>
+    {% if r.photo %}<div class="photo"><img src="{{ r.photo }}" alt="证件照"></div>{% endif %}
   </header>
-  {% if r.summary %}<p class="summary">{{ r.summary }}</p>{% endif %}
+  {% if r.summary %}<p class="summary">{{ r.summary | rich }}</p>{% endif %}
 
   {% if r.education %}
   <section><h2>教育背景</h2>
     {% for e in r.education %}
     <div class="entry">
-      <div class="line"><strong>{{ e.school }} · {{ e.major }}（{{ e.degree }}）</strong><span class="date">{{ e.period }}</span></div>
-      {% for d in e.details %}<p class="detail">{{ d }}</p>{% endfor %}
+      <div class="line"><strong class="org">{{ e.school }}{% if e.major %} · {{ e.major }}{% endif %}（{{ e.degree }}）</strong><span class="date">{{ e.period }}</span></div>
+      {% for d in e.details %}<p class="detail">{{ d | rich }}</p>{% endfor %}
     </div>
     {% endfor %}
   </section>
@@ -34,9 +42,9 @@
   <section><h2>实习经历</h2>
     {% for x in r.experience %}
     <div class="entry">
-      <div class="line"><strong>{{ x.org }} · {{ x.title }}</strong><span class="date">{{ x.period }}</span></div>
-      {% if x.summary %}<p class="detail">{{ x.summary }}</p>{% endif %}
-      {% for p in x.projects %}{% set n = loop.index %}{% include "item.html.j2" %}{% endfor %}
+      <div class="line"><strong class="org">{{ x.org }} · {{ x.title }}</strong><span class="date">{{ x.period }}</span></div>
+      {% if x.summary %}<p class="detail">{{ x.summary | rich }}</p>{% endif %}
+      <div class="items">{% for p in x.projects %}{% set n = loop.index %}{% include "item.html.j2" %}{% endfor %}</div>
     </div>
     {% endfor %}
   </section>
@@ -44,27 +52,49 @@
 
   {% if r.projects %}
   <section><h2>项目经历</h2>
-    {% for p in r.projects %}{% set n = loop.index %}{% include "item.html.j2" %}{% endfor %}
+    <div class="items">{% for p in r.projects %}{% set n = loop.index %}{% include "item.html.j2" %}{% endfor %}</div>
   </section>
   {% endif %}
 
   {% if r.publications %}
   <section><h2>科研成果</h2>
-    {% for p in r.publications %}<div class="line small"><span>{{ p.title }}{% if p.venue %} · {{ p.venue }}{% endif %}</span><span class="date">{{ p.status }}</span></div>{% endfor %}
+    {% for p in r.publications %}<p class="pub"><span class="badge">{{ p.status }}</span>{{ p.title }}{% if p.venue %}<span class="venue"> · {{ p.venue }}</span>{% endif %}</p>{% endfor %}
   </section>
   {% endif %}
 
   {% if r.skills %}
-  <section><h2>技能</h2>
-    {% for s in r.skills %}<p class="detail"><strong>{{ s.group }}</strong>　{{ s.items }}</p>{% endfor %}
+  <section><h2>专业技能</h2>
+    <div class="skills">{% for s in r.skills %}<p><strong>{{ s.group }}</strong><span>{{ s.items | rich }}</span></p>{% endfor %}</div>
   </section>
   {% endif %}
 
   {% if r.awards %}
   <section><h2>荣誉奖项</h2>
-    <ul class="awards">{% for a in r.awards %}<li><span class="date">{{ a.year }}</span>{{ a.name }}{% if a.level %} {{ a.level }}{% endif %}</li>{% endfor %}</ul>
+    <ul class="awards">{% for a in r.awards %}<li><span class="date">{{ a.year }}</span><span>{{ a.name }}{% if a.level %} <strong>{{ a.level }}</strong>{% endif %}</span></li>{% endfor %}</ul>
   </section>
   {% endif %}
+</div>
 </main>
+<script>
+/* 单页自适应：在 [MIN, MAX] 内二分查找能放进一页 A4 的最大字号，所有尺寸都随 --fs 缩放。
+   结果写在 <html data-fs data-fill>，渲染器据此提示"内容偏少 / 放不下"。 */
+(function () {
+  var MIN = 11.5, MAX = 14.5, root = document.documentElement, page = document.querySelector(".page"),
+      box = document.getElementById("content");
+  /* 内容底部到页面顶部的距离，对比 A4 高度减下边距（不用 clientHeight：溢出时页面会被撑高；
+     顶部色条用负外边距贴住页顶，所以从页面顶部量，而不是从内容盒子顶部量） */
+  function avail() { return 297 * 96 / 25.4 - parseFloat(getComputedStyle(page).paddingBottom) - 1; }
+  function used() { return box.getBoundingClientRect().bottom - page.getBoundingClientRect().top; }
+  function fits(fs) { root.style.setProperty("--fs", fs + "px"); return used() <= avail(); }
+  if (!page || !box || window.matchMedia("(max-width: 700px)").matches) return;
+  var lo = MIN, hi = MAX;
+  if (fits(hi)) lo = hi;
+  else if (!fits(lo)) hi = lo;
+  else for (var i = 0; i < 12; i++) { var mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+  fits(lo);
+  root.dataset.fs = lo.toFixed(2);
+  root.dataset.fill = (used() / avail()).toFixed(3);
+})();
+</script>
 </body>
 </html>
