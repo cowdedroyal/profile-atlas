@@ -350,3 +350,28 @@ def test_merged_period_is_the_union(tmp_path):
     prof = _with(lambda p: p["projects"][0].update(repo="lab/rag", period={"start": "2024-12", "end": "2025-01"}), None)
     plan = make_plan_with(tmp_path, prof, [MANIFEST])
     assert plan["projects"][0]["period"] == {"start": "2024-12", "end": "2025-02"}
+
+
+# ---------------------------------------------------------------- JD roles
+
+def test_jd_requirements_coverage_and_gaps(tmp_path):
+    cfg = Config(config_dir=tmp_path / "cfg", data_dir=tmp_path / "data")
+    role = {**ROLE, "requirements": [
+        {"need": "LoRA 微调经验", "keywords": ["LoRA"], "must": True},
+        {"need": "混合检索", "keywords": ["混合检索"]},
+        {"need": "K8s 部署", "keywords": ["kubernetes", "k8s"], "must": True}]}
+    mdir = cfg.user_dir("demo") / "manifests"
+    mdir.mkdir(parents=True)
+    (mdir / "m0.yaml").write_text(yaml.safe_dump(MANIFEST, allow_unicode=True))
+    index = {"login": "demo", "manifests": [{"key": "lab/rag", "file": "m0.yaml", "ok": True, "status": "done",
+                                             "visibility": "public", "project_url": "https://github.com/lab/rag"}]}
+    plan = build_plan(cfg, index, PROFILE, role, KMAP)
+    cov = {c["need"]: c["evidence"] for c in plan["coverage"]}
+    assert "exp:acme-2025/sft" in cov["LoRA 微调经验"]          # matched via techs
+    assert cov["混合检索"] == ["gh:lab/rag"]                       # matched via contributions
+    assert cov["K8s 部署"] == []                                   # a gap, not something to invent
+    w = [i for i in verify(plan, draft()).issues if i.code == "jd-must-not-shown"]
+    assert len(w) == 1 and "LoRA" in w[0].message                 # evidence exists but the draft never says it
+    d = draft(experience=[{"ref": "exp:acme-2025", "projects": [
+        {"ref": "exp:acme-2025/sft", "title": "领域 SFT（LoRA）", "bullets": ["在 1,200 条评测集上通过率 61.5% → 70.2%"]}]}])
+    assert not [i for i in verify(plan, d).issues if i.code == "jd-must-not-shown"]

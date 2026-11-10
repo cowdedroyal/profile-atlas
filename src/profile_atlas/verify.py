@@ -124,8 +124,9 @@ def verify(plan: dict, draft: dict) -> Report:
                 r.add("error", w, "number-not-in-facts", f"{n} 在 {plan_item['ref']} 的事实里找不到：{b[:50]}")
             if any(number_in(b, float(v)) for v in smoke) and _IMPROVE.search(b):
                 r.add("error", w, "smoke-as-improvement", f"smoke 级结果被写成了效果提升：{b[:50]}")
-            if len(b) > 120:
-                r.add("warning", w, "bullet-too-long", f"{len(b)} 字，单页简历建议不超过 120 字")
+            shown = len(b.replace("**", ""))  # bold markers aren't printed
+            if shown > 120:
+                r.add("warning", w, "bullet-too-long", f"{shown} 字，单页简历建议不超过 120 字")
 
     for i, p in enumerate(draft.get("projects", [])):
         pi = by_ref.get(p["ref"])
@@ -152,4 +153,12 @@ def verify(plan: dict, draft: dict) -> Report:
                 r.add("error", f"experience[{i}].projects[{j}]", "ref-unknown", f"{e['ref']} 下没有 {p['ref']}（可能未核实）")
                 continue
             check_item(p, pi, f"experience[{i}].projects[{j}]")
+
+    written = " ".join(_flatten([draft.get("headline"), draft.get("summary"), draft.get("skills"),
+                                 [[e.get("summary"), e["projects"]] for e in draft.get("experience", [])],
+                                 draft.get("projects")])).lower()
+    for c in plan.get("coverage") or []:
+        if c["must"] and c["evidence"] and not any(k.lower() in written for k in c["keywords"]):
+            r.add("warning", "coverage", "jd-must-not-shown",
+                  f"JD 必需项「{c['need']}」在 {', '.join(c['evidence'][:3])} 里有证据，但草稿里没写到")
     return r

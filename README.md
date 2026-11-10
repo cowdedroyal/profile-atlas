@@ -17,7 +17,7 @@ profile-atlas 让每个项目带一份证据化清单，再由 coding agent 按�
           │
   verify：每个数字都要在事实里找得到；smoke 级结果不能写成提升
           │
-  render：完整版（本机）+ 匿名公开版，HTML + 单页 PDF
+  render：完整版（本机，默认）；可选的匿名公开版；HTML + 单页 PDF
 ```
 
 ## 隐私
@@ -48,7 +48,7 @@ profile-atlas roles                                # 内置岗位：llm-algorith
 profile-atlas plan --role llm-algorithm            # 选项目、排序，输出计划和草稿路径
 # 让 agent 按 skill/resume-builder 写草稿，或自己按 schema 写
 profile-atlas verify --role llm-algorithm
-profile-atlas render --role llm-algorithm --both   # 完整版 + 公开版
+profile-atlas render --role llm-algorithm          # 完整版（带证件照）；--public 出匿名公开版
 profile-atlas open                                 # 在浏览器里打开本机的简历总览页
 profile-atlas open --folder                        # 在访达里打开输出目录（~/.local 是隐藏目录，访达默认看不到）
 ```
@@ -66,6 +66,10 @@ profile-atlas techs "LoRA" "混合检索"     # 在知识地图里查技术 slug
 ```
 
 `status` 决定项目能不能进简历：只有 `active` 和 `done` 进入；`idea`（还没开始）和 `archived`（保留但不展示）一律排除。
+按 JD 定制：把 JD 写成 `~/.config/profile-atlas/roles/<id>.yaml`，除权重外加 `jd`（原文）和 `requirements`
+（每条要求的关键词、是否必需）。`plan` 会列出每条要求在哪些项目的事实里有证据、哪些是缺口；`verify` 会提醒有证据却没写进草稿的必需项。
+缺口只在汇报里说明，不写进简历。
+
 `visibility` 只决定公开版里的展示：`public` 可以带链接，`summary` 只出文字，`hidden` 不出现。
 
 ## Agent skills

@@ -199,6 +199,10 @@ def build_plan(cfg: Config, index: dict, profile: dict, role: dict, kmap: KmapIn
                            "title": exp["title"], "period": exp["period"], "summary": exp.get("summary"),
                            "projects": items})
 
+    warnings = [{"ref": f"gh:{key}", "code": "internship-not-linked",
+                 "message": "清单 kind: internship，但没有任何实习经历用 repo: 关联它，会被当成独立项目；"
+                            "在 profile.yaml 对应经历的 projects 里加一条 repo: " + key}
+                for key, it in gh_items.items() if key not in absorbed and it.get("kind") == "internship"]
     projects += [it for key, it in gh_items.items() if key not in absorbed]
     projects.sort(key=lambda i: (-i["score"], i["title"]))
     limit = int(role.get("limits", {}).get("projects", 3))
@@ -216,8 +220,28 @@ def build_plan(cfg: Config, index: dict, profile: dict, role: dict, kmap: KmapIn
         "experience": experience,
         "projects": projects,
         "excluded": excluded,
+        "warnings": warnings,
         "limits": role.get("limits", {}),
+        "coverage": coverage(role, projects, experience),
     }
+
+
+def _text(item: dict) -> str:
+    return (item["title"] + " " + " ".join(item.get("techs", [])) + " "
+            + json.dumps(item["facts"], ensure_ascii=False)).lower()
+
+
+def coverage(role: dict, projects: list[dict], experience: list[dict]) -> list[dict]:
+    """For a role written from a JD: which plan items carry evidence for each requirement.
+    A requirement with no evidence is a gap — to be said honestly, never papered over in the draft."""
+    items = projects + [p for e in experience for p in e["projects"]]
+    out = []
+    for r in role.get("requirements") or []:
+        kws = [k.lower() for k in r.get("keywords", []) if k]
+        refs = [i["ref"] for i in items if any(k in _text(i) for k in kws)]
+        out.append({"need": r["need"], "must": bool(r.get("must")), "keywords": r.get("keywords", []),
+                    "evidence": refs})
+    return out
 
 
 def plan_path(cfg: Config, login: str, role_id: str) -> Path:

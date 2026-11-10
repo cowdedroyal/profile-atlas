@@ -178,7 +178,10 @@ def cmd_plan(args: argparse.Namespace) -> int:
                         for p in plan["projects"]],
            "experience": [{"ref": e["ref"], "projects": [{"ref": p["ref"], "score": p["score"]} for p in e["projects"]]}
                           for e in plan["experience"]],
-           "excluded": plan["excluded"]})
+           "excluded": plan["excluded"],
+           "warnings": plan.get("warnings", []),
+           **({"coverage": [{"need": c["need"], "must": c["must"], "evidence": c["evidence"]} for c in plan["coverage"]],
+               "gaps": [c["need"] for c in plan["coverage"] if not c["evidence"]]} if plan.get("coverage") else {})})
     return 0
 
 
